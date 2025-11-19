@@ -1,0 +1,81 @@
+.checkin-section {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 35px;
+}
+
+.checkin-section h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #333;
+    font-size: 20px;
+}
+
+.checkin-form {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.member-select {
+    flex: 1;
+    padding: 12px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 16px;
+    background: white;
+    cursor: pointer;
+    transition: border-color 0.3s;
+}
+
+.member-select:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.btn-checkin {
+    padding: 12px 30px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.btn-checkin:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-checkin:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.btn-checkout {
+    padding: 8px 20px;
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-checkout:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(245, 87, 108, 0.3);
+}
+
+.status-badge.error {
+    background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%);
+}

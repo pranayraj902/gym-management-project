@@ -1,0 +1,71 @@
+.payment-status-toggle {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toggle-container {
+    display: flex;
+    align-items: center;
+}
+
+.toggle-button {
+    position: relative;
+    width: 150px;
+    height: 50px;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.toggle-button.pending {
+    background: linear-gradient(135deg, #ffa726 0%, #fb8c00 100%);
+    color: white;
+}
+
+.toggle-button.paid {
+    background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+    color: white;
+}
+
+.toggle-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.toggle-button:active {
+    transform: translateY(0);
+}
+
+.toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 1;
+}
+
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 14px;
+    text-transform: uppercase;
+    display: inline-block;
+}
+
+.status-badge.paid {
+    background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+    color: white;
+}
+
+.status-badge.pending {
+    background: linear-gradient(135deg, #ffa726 0%, #fb8c00 100%);
+    color: white;
+}

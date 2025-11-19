@@ -1,0 +1,640 @@
+
+-- ============================================================
+-- GYM MANAGEMENT SYSTEM - COMPLETE DATABASE IMPLEMENTATION
+-- ============================================================
+
+-- Create Database Schema for Gym Management System
+
+-- Member Table
+CREATE TABLE Member (
+    Member_id INT PRIMARY KEY,
+    Name VARCHAR(100) NOT NULL,
+    Gender VARCHAR(10),
+    Phone_Num VARCHAR(20),
+    Address VARCHAR(255),
+    Join_Date DATE NOT NULL,
+    sex VARCHAR(10),
+    status VARCHAR(20) DEFAULT 'Active',
+    membership_expiry DATE
+);
+
+-- Trainer Table
+CREATE TABLE Trainer (
+    Trainer_ID INT PRIMARY KEY,
+    Name VARCHAR(100) NOT NULL,
+    Email VARCHAR(100),
+    Phone VARCHAR(20),
+    Mail VARCHAR(100),
+    Salary DECIMAL(10, 2),
+    hire_date DATE,
+    status VARCHAR(20) DEFAULT 'Active'
+);
+
+-- Membership_Plan Table
+CREATE TABLE Membership_Plan (
+    Plan_id INT PRIMARY KEY,
+    Plan_Name VARCHAR(100) NOT NULL,
+    duration_months INT,
+    price DECIMAL(10, 2),
+    max_sessions_per_week INT
+);
+
+-- Equipment Table
+CREATE TABLE Equipment (
+    equipment_id INT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    type VARCHAR(50),
+    availability VARCHAR(20) DEFAULT 'Available',
+    maintenance_dates DATE,
+    last_maintenance DATE,
+    purchase_date DATE
+);
+
+-- Workout_Session Table
+CREATE TABLE Workout_Session (
+    session_id INT PRIMARY KEY,
+    date DATE NOT NULL,
+    duration INT,
+    type VARCHAR(50),
+    calories_burned INT,
+    trainer_id INT,
+    max_capacity INT DEFAULT 20,
+    current_participants INT DEFAULT 0,
+    FOREIGN KEY (trainer_id) REFERENCES Trainer(Trainer_ID)
+);
+
+-- Payment Table
+CREATE TABLE Payment (
+    Payment_ID INT PRIMARY KEY,
+    Amount DECIMAL(10, 2) NOT NULL,
+    Payment_Date DATE NOT NULL,
+    Mode VARCHAR(50),
+    Status VARCHAR(20) DEFAULT 'Pending',
+    Member_id INT,
+    FOREIGN KEY (Member_id) REFERENCES Member(Member_id)
+);
+
+-- Feedback Table
+CREATE TABLE Feedback (
+    feedback_id INT PRIMARY KEY,
+    comments TEXT,
+    rating INT CHECK (rating >= 1 AND rating <= 5),
+    feedback_date DATE DEFAULT (CURRENT_DATE),
+    M INT,
+    FOREIGN KEY (M) REFERENCES Member(Member_id)
+);
+
+-- Attendance Log Table
+CREATE TABLE Attendance_Log (
+    log_id INT PRIMARY KEY AUTO_INCREMENT,
+    Member_id INT,
+    check_in_time DATETIME,
+    check_out_time DATETIME,
+    FOREIGN KEY (Member_id) REFERENCES Member(Member_id)
+);
+
+-- Payment History Table (for audit trail)
+CREATE TABLE Payment_History (
+    history_id INT PRIMARY KEY AUTO_INCREMENT,
+    Payment_ID INT,
+    old_status VARCHAR(20),
+    new_status VARCHAR(20),
+    changed_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (Payment_ID) REFERENCES Payment(Payment_ID)
+);
+
+-- Equipment Maintenance Log
+CREATE TABLE Equipment_Maintenance_Log (
+    log_id INT PRIMARY KEY AUTO_INCREMENT,
+    equipment_id INT,
+    maintenance_date DATE,
+    description TEXT,
+    cost DECIMAL(10, 2),
+    FOREIGN KEY (equipment_id) REFERENCES Equipment(equipment_id)
+);
+
+-- Trains_For Relationship (Member-Trainer)
+CREATE TABLE Trains_For (
+    Member_id INT,
+    Trainer_ID INT,
+    start_date DATE,
+    end_date DATE,
+    PRIMARY KEY (Member_id, Trainer_ID),
+    FOREIGN KEY (Member_id) REFERENCES Member(Member_id),
+    FOREIGN KEY (Trainer_ID) REFERENCES Trainer(Trainer_ID)
+);
+
+-- Subscribes_to Relationship (Member-Membership_Plan)
+CREATE TABLE Subscribes_to (
+    Member_id INT,
+    Plan_id INT,
+    start_date DATE,
+    end_date DATE,
+    PRIMARY KEY (Member_id, Plan_id),
+    FOREIGN KEY (Member_id) REFERENCES Member(Member_id),
+    FOREIGN KEY (Plan_id) REFERENCES Membership_Plan(Plan_id)
+);
+
+-- Gives Relationship (Member-Feedback)
+CREATE TABLE Gives (
+    Member_id INT,
+    feedback_id INT,
+    PRIMARY KEY (Member_id, feedback_id),
+    FOREIGN KEY (Member_id) REFERENCES Member(Member_id),
+    FOREIGN KEY (feedback_id) REFERENCES Feedback(feedback_id)
+);
+
+-- Uses Relationship (Member-Equipment via Workout_Session)
+CREATE TABLE Uses (
+    session_id INT,
+    equipment_id INT,
+    Member_id INT,
+    PRIMARY KEY (session_id, equipment_id),
+    FOREIGN KEY (session_id) REFERENCES Workout_Session(session_id),
+    FOREIGN KEY (equipment_id) REFERENCES Equipment(equipment_id),
+    FOREIGN KEY (Member_id) REFERENCES Member(Member_id)
+);
+
+-- Participates_in Relationship (Member-Workout_Session)
+CREATE TABLE Participates_in (
+    Member_id INT,
+    session_id INT,
+    attendance_status VARCHAR(20) DEFAULT 'Registered',
+    PRIMARY KEY (Member_id, session_id),
+    FOREIGN KEY (Member_id) REFERENCES Member(Member_id),
+    FOREIGN KEY (session_id) REFERENCES Workout_Session(session_id)
+);
+
+-- makes Relationship (Member-Payment)
+CREATE TABLE makes (
+    Member_id INT,
+    Payment_ID INT,
+    PRIMARY KEY (Member_id, Payment_ID),
+    FOREIGN KEY (Member_id) REFERENCES Member(Member_id),
+    FOREIGN KEY (Payment_ID) REFERENCES Payment(Payment_ID)
+);
+
+-- is_for Relationship (Payment-Membership_Plan)
+CREATE TABLE is_for (
+    Payment_ID INT,
+    Plan_id INT,
+    PRIMARY KEY (Payment_ID, Plan_id),
+    FOREIGN KEY (Payment_ID) REFERENCES Payment(Payment_ID),
+    FOREIGN KEY (Plan_id) REFERENCES Membership_Plan(Plan_id)
+);
+
+-- ============================================================
+-- STORED PROCEDURES
+-- ============================================================
+
+-- Procedure 1: Register a new member
+DELIMITER //
+CREATE PROCEDURE RegisterNewMember(
+    IN p_member_id INT,
+    IN p_name VARCHAR(100),
+    IN p_gender VARCHAR(10),
+    IN p_phone VARCHAR(20),
+    IN p_address VARCHAR(255),
+    IN p_plan_id INT
+)
+BEGIN
+    DECLARE v_plan_duration INT;
+    DECLARE v_expiry_date DATE;
+    
+    -- Get plan duration
+    SELECT duration_months INTO v_plan_duration
+    FROM Membership_Plan
+    WHERE Plan_id = p_plan_id;
+    
+    -- Calculate expiry date
+    SET v_expiry_date = DATE_ADD(CURDATE(), INTERVAL v_plan_duration MONTH);
+    
+    -- Insert member
+    INSERT INTO Member (Member_id, Name, Gender, Phone_Num, Address, Join_Date, status, membership_expiry)
+    VALUES (p_member_id, p_name, p_gender, p_phone, p_address, CURDATE(), 'Active', v_expiry_date);
+    
+    -- Subscribe to plan
+    INSERT INTO Subscribes_to (Member_id, Plan_id, start_date, end_date)
+    VALUES (p_member_id, p_plan_id, CURDATE(), v_expiry_date);
+    
+    SELECT 'Member registered successfully!' AS Message;
+END //
+DELIMITER ;
+
+-- Procedure 2: Process payment and update membership
+DELIMITER //
+CREATE PROCEDURE ProcessPayment(
+    IN p_payment_id INT,
+    IN p_member_id INT,
+    IN p_amount DECIMAL(10,2),
+    IN p_mode VARCHAR(50),
+    IN p_plan_id INT
+)
+BEGIN
+    DECLARE v_plan_duration INT;
+    DECLARE v_new_expiry DATE;
+    
+    -- Insert payment
+    INSERT INTO Payment (Payment_ID, Amount, Payment_Date, Mode, Status, Member_id)
+    VALUES (p_payment_id, p_amount, CURDATE(), p_mode, 'Completed', p_member_id);
+    
+    -- Link payment to plan
+    INSERT INTO is_for (Payment_ID, Plan_id)
+    VALUES (p_payment_id, p_plan_id);
+    
+    -- Get plan duration
+    SELECT duration_months INTO v_plan_duration
+    FROM Membership_Plan
+    WHERE Plan_id = p_plan_id;
+    
+    -- Update membership expiry
+    UPDATE Member
+    SET membership_expiry = DATE_ADD(COALESCE(membership_expiry, CURDATE()), INTERVAL v_plan_duration MONTH),
+        status = 'Active'
+    WHERE Member_id = p_member_id;
+    
+    SELECT 'Payment processed successfully!' AS Message;
+END //
+DELIMITER ;
+
+-- Procedure 3: Book a workout session
+DELIMITER //
+CREATE PROCEDURE BookWorkoutSession(
+    IN p_member_id INT,
+    IN p_session_id INT
+)
+BEGIN
+    DECLARE v_current_participants INT;
+    DECLARE v_max_capacity INT;
+    DECLARE v_member_status VARCHAR(20);
+    
+    -- Check member status
+    SELECT status INTO v_member_status
+    FROM Member
+    WHERE Member_id = p_member_id;
+    
+    IF v_member_status != 'Active' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Member is not active. Please renew membership.';
+    END IF;
+    
+    -- Get session capacity
+    SELECT current_participants, max_capacity INTO v_current_participants, v_max_capacity
+    FROM Workout_Session
+    WHERE session_id = p_session_id;
+    
+    -- Check capacity
+    IF v_current_participants >= v_max_capacity THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Session is full. Cannot book.';
+    END IF;
+    
+    -- Book session
+    INSERT INTO Participates_in (Member_id, session_id, attendance_status)
+    VALUES (p_member_id, p_session_id, 'Registered');
+    
+    -- Update participant count
+    UPDATE Workout_Session
+    SET current_participants = current_participants + 1
+    WHERE session_id = p_session_id;
+    
+    SELECT 'Session booked successfully!' AS Message;
+END //
+DELIMITER ;
+
+-- Procedure 4: Check member attendance
+DELIMITER //
+CREATE PROCEDURE CheckInMember(
+    IN p_member_id INT
+)
+BEGIN
+    DECLARE v_status VARCHAR(20);
+    DECLARE v_expiry DATE;
+    
+    -- Check membership status
+    SELECT status, membership_expiry INTO v_status, v_expiry
+    FROM Member
+    WHERE Member_id = p_member_id;
+    
+    IF v_status != 'Active' OR v_expiry < CURDATE() THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Membership expired or inactive. Please renew.';
+    END IF;
+    
+    -- Log check-in
+    INSERT INTO Attendance_Log (Member_id, check_in_time)
+    VALUES (p_member_id, NOW());
+    
+    SELECT 'Check-in successful!' AS Message, NOW() AS check_in_time;
+END //
+DELIMITER ;
+
+-- Procedure 5: Generate monthly revenue report
+DELIMITER //
+CREATE PROCEDURE GetMonthlyRevenue(
+    IN p_month INT,
+    IN p_year INT
+)
+BEGIN
+    SELECT 
+        DATE_FORMAT(Payment_Date, '%Y-%m') AS Month,
+        COUNT(*) AS Total_Payments,
+        SUM(Amount) AS Total_Revenue,
+        AVG(Amount) AS Average_Payment,
+        Mode,
+        COUNT(*) AS Payment_Count
+    FROM Payment
+    WHERE MONTH(Payment_Date) = p_month
+        AND YEAR(Payment_Date) = p_year
+        AND Status = 'Completed'
+    GROUP BY Mode;
+END //
+DELIMITER ;
+
+-- Procedure 6: Get trainer performance
+DELIMITER //
+CREATE PROCEDURE GetTrainerPerformance(
+    IN p_trainer_id INT
+)
+BEGIN
+    SELECT 
+        t.Name AS Trainer_Name,
+        COUNT(DISTINCT tf.Member_id) AS Total_Members,
+        COUNT(ws.session_id) AS Total_Sessions,
+        AVG(ws.current_participants) AS Avg_Participants_Per_Session,
+        SUM(ws.duration) AS Total_Training_Hours
+    FROM Trainer t
+    LEFT JOIN Trains_For tf ON t.Trainer_ID = tf.Trainer_ID
+    LEFT JOIN Workout_Session ws ON t.Trainer_ID = ws.trainer_id
+    WHERE t.Trainer_ID = p_trainer_id
+    GROUP BY t.Trainer_ID, t.Name;
+END //
+DELIMITER ;
+
+-- ============================================================
+-- FUNCTIONS
+-- ============================================================
+
+-- Function 1: Calculate member's total spending
+DELIMITER //
+CREATE FUNCTION GetMemberTotalSpending(p_member_id INT)
+RETURNS DECIMAL(10,2)
+DETERMINISTIC
+BEGIN
+    DECLARE total DECIMAL(10,2);
+    
+    SELECT COALESCE(SUM(Amount), 0) INTO total
+    FROM Payment
+    WHERE Member_id = p_member_id AND Status = 'Completed';
+    
+    RETURN total;
+END //
+DELIMITER ;
+
+-- Function 2: Get member's remaining days
+DELIMITER //
+CREATE FUNCTION GetMembershipDaysRemaining(p_member_id INT)
+RETURNS INT
+DETERMINISTIC
+BEGIN
+    DECLARE days_remaining INT;
+    DECLARE expiry DATE;
+    
+    SELECT membership_expiry INTO expiry
+    FROM Member
+    WHERE Member_id = p_member_id;
+    
+    IF expiry IS NULL THEN
+        RETURN 0;
+    END IF;
+    
+    SET days_remaining = DATEDIFF(expiry, CURDATE());
+    
+    IF days_remaining < 0 THEN
+        RETURN 0;
+    END IF;
+    
+    RETURN days_remaining;
+END //
+DELIMITER ;
+
+-- Function 3: Calculate trainer's monthly earnings
+DELIMITER //
+CREATE FUNCTION GetTrainerMonthlyEarnings(p_trainer_id INT)
+RETURNS DECIMAL(10,2)
+DETERMINISTIC
+BEGIN
+    DECLARE monthly_salary DECIMAL(10,2);
+    
+    SELECT Salary INTO monthly_salary
+    FROM Trainer
+    WHERE Trainer_ID = p_trainer_id;
+    
+    RETURN COALESCE(monthly_salary, 0);
+END //
+DELIMITER ;
+
+-- Function 4: Get equipment maintenance cost
+DELIMITER //
+CREATE FUNCTION GetEquipmentMaintenanceCost(p_equipment_id INT)
+RETURNS DECIMAL(10,2)
+DETERMINISTIC
+BEGIN
+    DECLARE total_cost DECIMAL(10,2);
+    
+    SELECT COALESCE(SUM(cost), 0) INTO total_cost
+    FROM Equipment_Maintenance_Log
+    WHERE equipment_id = p_equipment_id;
+    
+    RETURN total_cost;
+END //
+DELIMITER ;
+
+-- Function 5: Calculate average rating for gym
+DELIMITER //
+CREATE FUNCTION GetAverageGymRating()
+RETURNS DECIMAL(3,2)
+DETERMINISTIC
+BEGIN
+    DECLARE avg_rating DECIMAL(3,2);
+    
+    SELECT COALESCE(AVG(rating), 0) INTO avg_rating
+    FROM Feedback;
+    
+    RETURN avg_rating;
+END //
+DELIMITER ;
+
+-- ============================================================
+-- TRIGGERS
+-- ============================================================
+
+-- Trigger 1: Auto-update payment history when payment status changes
+DELIMITER //
+CREATE TRIGGER after_payment_status_update
+AFTER UPDATE ON Payment
+FOR EACH ROW
+BEGIN
+    IF OLD.Status != NEW.Status THEN
+        INSERT INTO Payment_History (Payment_ID, old_status, new_status, changed_date)
+        VALUES (NEW.Payment_ID, OLD.Status, NEW.Status, NOW());
+    END IF;
+END //
+DELIMITER ;
+
+-- Trigger 2: Prevent booking if membership expired
+DELIMITER //
+CREATE TRIGGER before_session_booking
+BEFORE INSERT ON Participates_in
+FOR EACH ROW
+BEGIN
+    DECLARE v_expiry DATE;
+    DECLARE v_status VARCHAR(20);
+    
+    SELECT membership_expiry, status INTO v_expiry, v_status
+    FROM Member
+    WHERE Member_id = NEW.Member_id;
+    
+    IF v_status != 'Active' OR v_expiry < CURDATE() THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Cannot book session. Membership expired or inactive.';
+    END IF;
+END //
+DELIMITER ;
+
+-- Trigger 3: Update equipment availability when maintenance scheduled
+DELIMITER //
+CREATE TRIGGER after_equipment_maintenance_insert
+AFTER INSERT ON Equipment_Maintenance_Log
+FOR EACH ROW
+BEGIN
+    UPDATE Equipment
+    SET availability = 'Under Maintenance',
+        last_maintenance = NEW.maintenance_date
+    WHERE equipment_id = NEW.equipment_id;
+END //
+DELIMITER ;
+
+-- Trigger 4: Automatically deactivate member when membership expires
+DELIMITER //
+CREATE TRIGGER check_membership_expiry
+BEFORE UPDATE ON Member
+FOR EACH ROW
+BEGIN
+    IF NEW.membership_expiry < CURDATE() AND OLD.status = 'Active' THEN
+        SET NEW.status = 'Expired';
+    END IF;
+END //
+DELIMITER ;
+
+-- Trigger 5: Validate feedback rating
+DELIMITER //
+CREATE TRIGGER before_feedback_insert
+BEFORE INSERT ON Feedback
+FOR EACH ROW
+BEGIN
+    IF NEW.rating < 1 OR NEW.rating > 5 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Rating must be between 1 and 5';
+    END IF;
+    
+    SET NEW.feedback_date = CURDATE();
+END //
+DELIMITER ;
+
+-- Trigger 6: Prevent session overbooking
+DELIMITER //
+CREATE TRIGGER before_session_participant_insert
+BEFORE INSERT ON Participates_in
+FOR EACH ROW
+BEGIN
+    DECLARE v_current INT;
+    DECLARE v_max INT;
+    
+    SELECT current_participants, max_capacity INTO v_current, v_max
+    FROM Workout_Session
+    WHERE session_id = NEW.session_id;
+    
+    IF v_current >= v_max THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Session is full';
+    END IF;
+END //
+DELIMITER ;
+
+-- Trigger 7: Log attendance when checking out
+DELIMITER //
+CREATE TRIGGER before_checkout_update
+BEFORE UPDATE ON Attendance_Log
+FOR EACH ROW
+BEGIN
+    IF OLD.check_out_time IS NULL AND NEW.check_out_time IS NOT NULL THEN
+        IF NEW.check_out_time < OLD.check_in_time THEN
+            SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Check-out time cannot be before check-in time';
+        END IF;
+    END IF;
+END //
+DELIMITER ;
+
+-- Trigger 8: Update trainer status when salary changed
+DELIMITER //
+CREATE TRIGGER after_trainer_salary_update
+AFTER UPDATE ON Trainer
+FOR EACH ROW
+BEGIN
+    IF OLD.Salary != NEW.Salary THEN
+        -- Could log to an audit table or send notification
+        -- For now, just ensure status is updated if needed
+        IF NEW.Salary = 0 THEN
+            UPDATE Trainer SET status = 'Inactive' WHERE Trainer_ID = NEW.Trainer_ID;
+        END IF;
+    END IF;
+END //
+DELIMITER ;
+
+-- ============================================================
+-- INDEXES FOR PERFORMANCE
+-- ============================================================
+
+CREATE INDEX idx_member_name ON Member(Name);
+CREATE INDEX idx_member_status ON Member(status);
+CREATE INDEX idx_member_expiry ON Member(membership_expiry);
+CREATE INDEX idx_trainer_name ON Trainer(Name);
+CREATE INDEX idx_workout_date ON Workout_Session(date);
+CREATE INDEX idx_payment_date ON Payment(Payment_Date);
+CREATE INDEX idx_payment_status ON Payment(Status);
+CREATE INDEX idx_equipment_type ON Equipment(type);
+CREATE INDEX idx_equipment_availability ON Equipment(availability);
+CREATE INDEX idx_feedback_rating ON Feedback(rating);
+CREATE INDEX idx_attendance_checkin ON Attendance_Log(check_in_time);
+
+-- ============================================================
+-- SAMPLE USAGE EXAMPLES
+-- ============================================================
+
+/*
+-- Register a new member
+CALL RegisterNewMember(1, 'John Doe', 'Male', '123-456-7890', '123 Main St', 1);
+
+-- Process a payment
+CALL ProcessPayment(1, 1, 500.00, 'Credit Card', 1);
+
+-- Book a workout session
+CALL BookWorkoutSession(1, 1);
+
+-- Check in a member
+CALL CheckInMember(1);
+
+-- Get monthly revenue
+CALL GetMonthlyRevenue(11, 2025);
+
+-- Get trainer performance
+CALL GetTrainerPerformance(1);
+
+-- Use functions
+SELECT GetMemberTotalSpending(1) AS Total_Spending;
+SELECT GetMembershipDaysRemaining(1) AS Days_Remaining;
+SELECT GetAverageGymRating() AS Gym_Rating;
+SELECT GetEquipmentMaintenanceCost(1) AS Maintenance_Cost;
+*/

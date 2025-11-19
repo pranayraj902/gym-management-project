@@ -1,0 +1,77 @@
+.session-list {
+    padding: 20px;
+}
+
+.session-list h2 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+}
+
+.session-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.session-table thead {
+    background-color: #3498db;
+    color: white;
+}
+
+.session-table th,
+.session-table td {
+    padding: 12px 15px;
+    text-align: left;
+}
+
+.session-table tbody tr {
+    border-bottom: 1px solid #ddd;
+}
+
+.session-table tbody tr:hover {
+    background-color: #f5f5f5;
+}
+
+.session-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.action-btn {
+    padding: 6px 12px;
+    margin: 0 5px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+.edit-btn {
+    background-color: #f39c12;
+    color: white;
+}
+
+.edit-btn:hover {
+    background-color: #e67e22;
+}
+
+.delete-btn {
+    background-color: #e74c3c;
+    color: white;
+}
+
+.delete-btn:hover {
+    background-color: #c0392b;
+}
+
+.view-btn {
+    background-color: #3498db;
+    color: white;
+}
+
+.view-btn:hover {
+    background-color: #2980b9;
+}

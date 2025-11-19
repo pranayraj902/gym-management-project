@@ -1,0 +1,3 @@
+-- Fix Plan_id to have AUTO_INCREMENT
+
+ALTER TABLE Membership_Plan MODIFY COLUMN Plan_id INT AUTO_INCREMENT;
