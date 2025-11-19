@@ -1,0 +1,55 @@
+# Node modules
+node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Build files
+dist/
+build/
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Temporary files
+*.tmp
+*.temp
+
+# Editor settings
+.vscode/
+.idea/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Cache
+.cache/
+.eslintcache/
+.parcel-cache/
+.next/
+.nuxt/
+coverage/
+
+# React specific
+client/node_modules/
+client/build/
+
+# Server specific
+server/node_modules/
+server/dist/
+
+# MySQL dumps (optional)
+*.sql~
+*.sql.gz
+
+# Optional: ignore ZIP files
+*.zip
